@@ -592,7 +592,7 @@ TRANSCRIPT:
 // MOCK DISCOVERY: TONG TONG LI @ CLAY
 // ============================================
 
-export const TONG_TONG_MOCK_DISCOVERY_PROMPT = `You are Tong-Tong Li, GTM Engineering Manager at Clay. The candidate is SELLING A PRODUCT TO YOU (Clay is the buyer). This is a mock discovery interview testing their sales discovery skills.
+export const TONG_TONG_SYSTEM_PROMPT_BASE = `You are Tong-Tong Li, GTM Engineering Manager at Clay. The candidate is SELLING A PRODUCT TO YOU (Clay is the buyer). This is a mock discovery interview testing their sales discovery skills.
 
 ## YOUR IDENTITY & BACKGROUND
 
@@ -620,7 +620,7 @@ export const TONG_TONG_MOCK_DISCOVERY_PROMPT = `You are Tong-Tong Li, GTM Engine
 4. Challenger methodology - Teaching insights, challenging assumptions, taking control
 5. Collaboration - Consultative vs. interrogative tone
 
-## SCENARIO CONTEXT
+## CLAY COMPANY CONTEXT
 
 **Clay Company Profile:**
 - Series C, $100M ARR (2025), $3.1B valuation
@@ -629,42 +629,38 @@ export const TONG_TONG_MOCK_DISCOVERY_PROMPT = `You are Tong-Tong Li, GTM Engine
 - GTM Motion: Hybrid PLG + sales-assist + enterprise
 - Recent: Acquired Avenue (Jan 2025) for signals/intent, launched Sculptor, Audiences, Sequencer at Sculpt conference
 
-**The product they're selling you:** A data validation/enrichment tool that verifies contact data accuracy before you pay for enrichment, catches data decay in real-time, and flags duplicates.
+`;
+
+export const buildTongTongPrompt = (scenario: typeof SCENARIO_PRODUCTS[0]) => {
+  return TONG_TONG_SYSTEM_PROMPT_BASE + `
+## THE PRODUCT THEY'RE SELLING YOU
+
+**Product:** ${scenario.name}
+**Category:** ${scenario.category}
+**Description:** ${scenario.description}
+**What it does:**
+${scenario.bullets.map(b => `- ${b}`).join('\n')}
 
 ## YOUR HIDDEN PAIN POINTS (reveal based on quality of their questions)
 
 **Surface symptoms → Root causes:**
-- Despite waterfall enrichment, 15-20% bounce rate on emails
-- Sales team wasting time on outdated contacts (people changed jobs)
-- Paying for enrichment credits on bad data
-- Manual cleanup quarterly is painful and time-consuming
+${scenario.hiddenPains.map(p => `- ${p}`).join('\n')}
 
-**Quantifiable impact (reveal if they probe):**
-- ~$8K/month wasted on bad credits
-- ~10 hours/week per rep chasing wrong contacts
-- 3-4 deals lost last quarter due to outdated stakeholder info
+**Quantifiable impact (reveal if they probe deeply):**
+${Object.entries(scenario.quantifiedImpact).map(([k, v]) => `- ${v}`).join('\n')}
 
 **Current state details:**
-- Using Clay's native waterfall with 5 data providers
-- 80% coverage but quality varies significantly
-- No systematic way to verify before paying for credits
-- RevOps team of 2 people, completely underwater with 4+ month backlog
+${scenario.currentState}
 
-## YOUR OBJECTIONS (raise these naturally)
+## YOUR OBJECTIONS (raise these naturally throughout the conversation)
 
-1. **Coverage objection:** "We already have high coverage with waterfall enrichment. Why add another tool?"
-2. **Cost objection:** "How much does this cost per record? We're trying to reduce spend, not add more."
-3. **Speed objection:** "Would this slow down our workflow? Speed is critical for us."
-4. **Timing objection:** "We just finished implementing our current stack 3 months ago. Change fatigue is real."
-5. **Build vs buy:** "We could probably build this ourselves. Why pay for it?"
+${scenario.objections.map((o, i) => `${i + 1}. "${o}"`).join('\n')}
 
 ## DECISION DYNAMICS (reveal only if they ask about process)
 
-- **Economic buyer:** You have budget authority up to $15K/year, above that needs VP GTM approval
-- **Budget status:** Not allocated, would need to make case to finance
-- **Timeline:** Quarterly planning in 6 weeks, could align with that if compelling
-- **Other stakeholders:** VP GTM (your boss), RevOps lead (your teammate Sarah)
-- **Champion potential:** You could champion this if they make a strong case
+- **Budget authority:** ${scenario.decisionDynamics.budgetAuthority}
+- **Timeline:** ${scenario.decisionDynamics.timeline}
+- **Other stakeholders:** ${scenario.decisionDynamics.stakeholders.join(', ')}
 
 ## HOW TO BEHAVE AS TONG-TONG
 
@@ -700,9 +696,9 @@ export const TONG_TONG_MOCK_DISCOVERY_PROMPT = `You are Tong-Tong Li, GTM Engine
 - If strong discovery: Consider next step, be open
 - If weak discovery: Push back with unresolved concerns
 
-**Cooperation level for this scenario:** Neutral - you'll answer questions but won't volunteer everything. Make them work for information.
+**Cooperation level:** ${scenario.difficulty <= 2 ? 'Relatively cooperative—you have real pain and are willing to share if they ask well' : scenario.difficulty === 3 ? 'Neutral—you will answer questions but wont volunteer everything' : 'Challenging—skeptical and make them really work for information'}
 
-**Urgency level:** Medium - it's a real problem but not burning. No immediate deadline.
+**Urgency level:** ${scenario.difficulty <= 2 ? 'Medium—its a real problem but not burning' : scenario.difficulty === 3 ? 'Low to medium—exploring options but no immediate deadline' : 'Low—just researching, no urgency'}
 
 ## SPEAKING STYLE
 
@@ -801,8 +797,13 @@ If they did well:
 
 If they need work:
 "Good effort. Here's what I'd focus on: [specific gaps]. In the real interview, you'll want to [concrete advice]. Questions for me?"`;
+};
+
+// Legacy export for backwards compatibility
+export const TONG_TONG_MOCK_DISCOVERY_PROMPT = buildTongTongPrompt(SCENARIO_PRODUCTS[0]);
 
 export const SCENARIO_PRODUCTS = [
+  // Original scenarios
   {
     id: "data_validation",
     name: "DataClean Pro",
@@ -813,8 +814,30 @@ export const SCENARIO_PRODUCTS = [
       "Catches data decay in real-time (updates when contacts change jobs)",
       "Flags duplicates and standardizes formatting"
     ],
-    clayPain: "Coverage gaps even with waterfall, data decay, cost per record",
-    objection: "We already have high coverage with waterfall enrichment. How is yours different?"
+    hiddenPains: [
+      "Despite waterfall enrichment, 15-20% bounce rate on emails",
+      "Sales team wasting time on outdated contacts (people changed jobs)",
+      "Paying for enrichment credits on bad data",
+      "Manual cleanup quarterly is painful and time-consuming"
+    ],
+    quantifiedImpact: {
+      wasteCost: "$8K/month wasted on bad credits",
+      timeWasted: "10 hours/week per rep chasing wrong contacts",
+      dealsLost: "3-4 deals lost last quarter due to outdated stakeholder info"
+    },
+    currentState: "Using Clay's native waterfall with 5 data providers. 80% coverage but quality varies. No systematic way to verify before paying.",
+    objections: [
+      "We already have high coverage with waterfall enrichment. How is yours different?",
+      "How much does this cost per record? We're trying to reduce spend.",
+      "Would this slow down our workflow? Speed is critical.",
+      "We just finished implementing our current stack 3 months ago."
+    ],
+    decisionDynamics: {
+      budgetAuthority: "Up to $15K/year, above needs VP GTM approval",
+      timeline: "Quarterly planning in 6 weeks",
+      stakeholders: ["VP GTM (boss)", "RevOps lead (Sarah)"]
+    },
+    difficulty: 2
   },
   {
     id: "ai_sdr",
@@ -826,49 +849,291 @@ export const SCENARIO_PRODUCTS = [
       "Automated follow-up sequences based on engagement",
       "Books meetings directly into AE calendars"
     ],
-    clayPain: "Quality at scale, maintaining authenticity, conversion rates declining",
-    objection: "We've tried AI tools before. The quality degrades after initial excitement."
+    hiddenPains: [
+      "Scaling outbound while maintaining quality is the #1 challenge",
+      "GTM Eng team too small to build everything in-house",
+      "Reply rates declining as volume increases (12% → 6% over last quarter)",
+      "Just implemented new email sequencing tool 3 months ago, hasn't fully rolled out"
+    ],
+    quantifiedImpact: {
+      replyRateDecline: "Reply rates dropped from 12% to 6% in one quarter",
+      teamCapacity: "GTM Eng team of 8, planning to 4x but hiring is slow",
+      opportunityCost: "Estimated $200K/quarter in missed pipeline from poor targeting"
+    },
+    currentState: "Building AI capabilities into Clay natively (Claygent, Sequencer). Using Outreach for sequencing, Clearbit/Apollo for data. Mixed results with AI content.",
+    objections: [
+      "We just rolled out new sequencing tool. Not looking to rip and replace.",
+      "We're building AI into Clay. Isn't this competing with our own product?",
+      "I've seen AI emails. They sound robotic. How is yours different?",
+      "Budget is tight. We're being asked to do more with less."
+    ],
+    decisionDynamics: {
+      budgetAuthority: "VP GTM (not Tong-Tong)",
+      timeline: "No urgency, just researching",
+      stakeholders: ["VP GTM", "CRO", "3 sales leaders"]
+    },
+    difficulty: 3
+  },
+  // New scenarios based on Clay table companies
+  {
+    id: "momentum_gtm",
+    name: "Momentum",
+    category: "GTM Intelligence & Deal Signals",
+    description: "AI-powered deal intelligence that captures signals from calls and syncs to CRM",
+    bullets: [
+      "Auto-captures buying signals, objections, and next steps from every call",
+      "Syncs deal context to Salesforce fields without manual entry",
+      "Slack alerts when deals show risk signals or need attention"
+    ],
+    hiddenPains: [
+      "Reps not updating Salesforce consistently—pipeline data is 2-3 weeks stale",
+      "No visibility into what's actually happening on calls without listening to recordings",
+      "Forecast accuracy is ~60%, leadership wants 80%+",
+      "Spending 5+ hours/week in pipeline reviews that could be automated"
+    ],
+    quantifiedImpact: {
+      forecastAccuracy: "Currently 60%, board wants 80%+",
+      timeWasted: "5+ hours/week in pipeline reviews across leadership",
+      dealSlippage: "15% of forecasted deals slip each quarter due to missed signals"
+    },
+    currentState: "Using Gong for call recording but it's siloed. Salesforce is source of truth but data is stale. Manual deal reviews in spreadsheets.",
+    objections: [
+      "We already have Gong. How is this different?",
+      "Our reps won't adopt another tool. Adoption is always the problem.",
+      "How do you handle the integration with our Salesforce customizations?",
+      "We're trying to consolidate tools, not add more."
+    ],
+    decisionDynamics: {
+      budgetAuthority: "CRO owns this budget",
+      timeline: "Q1 planning happening now, need to decide in 4 weeks",
+      stakeholders: ["CRO", "VP Sales", "RevOps Director"]
+    },
+    difficulty: 3
   },
   {
-    id: "intent_signals",
-    name: "SignalStack",
-    category: "Intent Data",
-    description: "Buying signal aggregation platform",
+    id: "profound_aeo",
+    name: "Profound",
+    category: "AI Search Visibility & AEO",
+    description: "GenAI marketing intelligence platform for AI-driven discovery",
     bullets: [
-      "Aggregates buying signals from 15+ data sources",
-      "Identifies in-market accounts before competitors",
-      "Prioritizes outreach based on signal strength"
+      "Track how your brand appears in ChatGPT, Perplexity, and AI search results",
+      "Monitor competitor visibility across AI platforms",
+      "Actionable recommendations to improve AI answer engine optimization (AEO)"
     ],
-    clayPain: "Signal overload, determining what signals actually matter, timing",
-    objection: "We're building signal aggregation into Clay natively. Why would we buy external?"
+    hiddenPains: [
+      "No visibility into how Clay appears in AI-generated answers",
+      "Competitors showing up in ChatGPT recommendations, Clay isn't",
+      "SEO team focused on Google but AI search is growing 40% YoY",
+      "Marketing can't measure ROI on content that influences AI answers"
+    ],
+    quantifiedImpact: {
+      blindSpot: "Zero visibility into AI search—estimated 15% of prospects now research via AI",
+      competitorRisk: "3 competitors confirmed appearing in ChatGPT recommendations for 'data enrichment'",
+      contentWaste: "Marketing producing content with no AI discoverability strategy"
+    },
+    currentState: "Strong SEO program, ranking well on Google. No AEO strategy. Content team focused on blog + docs but not optimized for AI consumption.",
+    objections: [
+      "AI search is still small compared to Google. Is this premature?",
+      "How do you actually influence what ChatGPT says? Seems like a black box.",
+      "We're a PLG company—do enterprise buyers really use AI search?",
+      "What's the ROI? Can you tie this to pipeline?"
+    ],
+    decisionDynamics: {
+      budgetAuthority: "VP Marketing owns this",
+      timeline: "Exploring for H2 planning, no immediate urgency",
+      stakeholders: ["VP Marketing", "Content Lead", "Demand Gen"]
+    },
+    difficulty: 4
   },
   {
-    id: "productivity",
-    name: "FlowState",
-    category: "Sales Productivity",
-    description: "Workflow consolidation platform",
+    id: "rudderstack_cdp",
+    name: "RudderStack",
+    category: "Customer Data Platform",
+    description: "Warehouse-native CDP for collecting, transforming, and activating customer data",
     bullets: [
-      "Consolidates 10+ tools into single interface",
-      "Automates manual data entry and context switching",
-      "Gives reps 2+ hours back per day"
+      "Collect event data from web, mobile, and servers in real-time",
+      "Transform and route data to 200+ destinations (including Clay)",
+      "Warehouse-first architecture—your data stays in your control"
     ],
-    clayPain: "Tool sprawl, context switching costs 40% productivity, reps only selling 28% of time",
-    objection: "Sounds like what we're building with Clay. Are you competing with us?"
+    hiddenPains: [
+      "Product usage data lives in Snowflake but hard to get into GTM tools",
+      "No unified view of customer journey across marketing, product, sales",
+      "Engineering team is bottleneck for every data request from GTM",
+      "Current Segment setup is expensive and they're raising prices 30%"
+    ],
+    quantifiedImpact: {
+      engineeringBottleneck: "2-week lead time for any new data integration",
+      segmentCost: "Segment renewal coming at 30% increase, ~$80K/year at stake",
+      dataGaps: "PQL scoring uses only 40% of available signals due to integration gaps"
+    },
+    currentState: "Using Segment for event collection, Snowflake as warehouse. Data team stretched thin. Marketing and Sales constantly asking for new data pipes.",
+    objections: [
+      "We're already on Segment. Migration sounds painful.",
+      "Our data team is underwater. Who's going to implement this?",
+      "How does this work with Clay? We need enriched data flowing both ways.",
+      "What happens to our historical data if we switch?"
+    ],
+    decisionDynamics: {
+      budgetAuthority: "Split between Data/Eng and GTM budgets",
+      timeline: "Segment renewal in 3 months—decision needed in 6 weeks",
+      stakeholders: ["Head of Data", "VP GTM", "Engineering Lead"]
+    },
+    difficulty: 3
   },
   {
-    id: "revenue_intel",
-    name: "DealScope",
-    category: "Revenue Intelligence",
-    description: "Pipeline visibility and deal insights",
+    id: "securitypal_trust",
+    name: "SecurityPal",
+    category: "Security Reviews & Trust Center",
+    description: "AI-powered security questionnaire automation with expert verification",
     bullets: [
-      "Real-time pipeline health scoring",
-      "AI-powered deal risk identification",
-      "Conversation intelligence for coaching"
+      "Complete security questionnaires 10x faster with AI + human review",
+      "Trust Center with always-current compliance documentation",
+      "Proactive sharing of SOC 2, GDPR, security posture with prospects"
     ],
-    clayPain: "Understanding what workflows drive results, measuring GTM effectiveness",
-    objection: "Our leadership already has Salesforce reports. What does this add?"
+    hiddenPains: [
+      "Security questionnaires taking 2-3 weeks, blocking enterprise deals",
+      "Same questions answered 50+ times with slight variations",
+      "Legal/Security team is bottleneck for every enterprise deal",
+      "Lost 2 enterprise deals last quarter because security review took too long"
+    ],
+    quantifiedImpact: {
+      dealVelocity: "Enterprise deals take 2-3 weeks longer due to security reviews",
+      dealsLost: "2 enterprise deals ($150K+ ACV each) lost to faster competitors",
+      teamTime: "Security team spending 20+ hours/week on repetitive questionnaires"
+    },
+    currentState: "Manual process—security team handles questionnaires in Google Docs. No centralized knowledge base. SOC 2 Type II certified but sharing is manual.",
+    objections: [
+      "We just got SOC 2 certified. Isn't that enough?",
+      "How accurate is the AI? We can't have errors in security docs.",
+      "Our questionnaires are very specific to our product. Can AI handle that?",
+      "Is this really a GTM problem or a security team problem?"
+    ],
+    decisionDynamics: {
+      budgetAuthority: "Could come from GTM or Security budget",
+      timeline: "Enterprise push in Q2—need solution before then",
+      stakeholders: ["VP Sales", "Head of Security", "Legal"]
+    },
+    difficulty: 2
+  },
+  {
+    id: "pylon_support",
+    name: "Pylon",
+    category: "B2B Customer Support Platform",
+    description: "Modern support platform built for B2B with Slack, Teams, and multi-channel",
+    bullets: [
+      "Unified inbox for Slack Connect, email, chat, and community",
+      "Native Slack/Teams support—meet customers where they are",
+      "B2B-specific features: account context, escalation workflows, CSM handoffs"
+    ],
+    hiddenPains: [
+      "Support happening in 15+ Slack Connect channels with no tracking",
+      "No way to measure response times or customer health across channels",
+      "Zendesk built for B2C—doesn't fit B2B workflow with account relationships",
+      "CSMs and Support stepping on each other with no shared context"
+    ],
+    quantifiedImpact: {
+      invisibleSupport: "40% of support interactions happen in Slack, completely untracked",
+      responseTime: "No SLA tracking—customers complaining about slow responses",
+      churnRisk: "2 churned accounts cited 'poor support experience' in exit interviews"
+    },
+    currentState: "Zendesk for tickets, Slack Connect for strategic accounts. No connection between them. Support metrics only capture email/ticket volume.",
+    objections: [
+      "We just renewed Zendesk. Can this integrate or do we rip and replace?",
+      "Our customers love Slack Connect. Will this change their experience?",
+      "How do you handle the handoff between Support and CS?",
+      "We're a small support team. Is this overkill?"
+    ],
+    decisionDynamics: {
+      budgetAuthority: "VP CS owns support budget",
+      timeline: "Customer health initiative launching in Q1",
+      stakeholders: ["VP CS", "Support Lead", "Head of Product"]
+    },
+    difficulty: 2
+  },
+  {
+    id: "logrocket_analytics",
+    name: "LogRocket",
+    category: "Product Analytics & Session Replay",
+    description: "Session replay plus product analytics to understand user behavior",
+    bullets: [
+      "Watch session replays to see exactly what users do in your product",
+      "Identify friction points and rage clicks automatically",
+      "Connect product usage to revenue outcomes"
+    ],
+    hiddenPains: [
+      "Product team can't see what users do after signup—activation is a black box",
+      "Support tickets describe bugs but no way to reproduce",
+      "Amplitude shows what happened but not why users drop off",
+      "PQL model needs behavioral signals but Product and GTM data are siloed"
+    ],
+    quantifiedImpact: {
+      activationBlackBox: "30% of signups never complete key activation steps—unknown why",
+      supportTime: "3+ hours/week trying to reproduce bugs from vague tickets",
+      conversionLoss: "Trial-to-paid stuck at 8%, need 12% to hit targets"
+    },
+    currentState: "Amplitude for analytics, no session replay. Product and GTM teams use different data. Engineers ask users to screen record bugs.",
+    objections: [
+      "We have Amplitude. Why do we need another analytics tool?",
+      "Session replay sounds creepy. What about privacy?",
+      "How does this help GTM? Seems like a product tool.",
+      "We're trying to reduce tooling costs, not add more."
+    ],
+    decisionDynamics: {
+      budgetAuthority: "Product budget, but GTM has interest for PQL signals",
+      timeline: "Product roadmap planning in 4 weeks",
+      stakeholders: ["VP Product", "Head of Growth", "VP GTM"]
+    },
+    difficulty: 3
+  },
+  {
+    id: "descript_video",
+    name: "Descript",
+    category: "AI Video & Content Creation",
+    description: "All-in-one video editor where you edit video by editing text",
+    bullets: [
+      "Edit video as easily as editing a doc—just delete words to cut clips",
+      "AI voice cloning and overdub to fix mistakes without re-recording",
+      "Auto-generate clips, transcripts, and social content from long-form"
+    ],
+    hiddenPains: [
+      "Marketing wants more video content but production is 10x slower than written",
+      "Sales enablement videos take weeks, often outdated by launch",
+      "No one on the team knows Premiere/Final Cut—dependent on contractors",
+      "Webinar recordings sit unused because editing is too painful"
+    ],
+    quantifiedImpact: {
+      contentVelocity: "1 polished video per month vs. goal of 4",
+      contractorCost: "$3K/month on freelance video editors",
+      wastedContent: "20+ hours of webinar recordings unedited and unused"
+    },
+    currentState: "Marketing does written content well. Video is outsourced or skipped. Sales enablement is slide decks, no video. Webinars recorded but never repurposed.",
+    objections: [
+      "We're not a video-first company. Is this a priority?",
+      "Our brand team is very particular about quality. Can AI match that?",
+      "We tried Loom but adoption was low. What's different?",
+      "How does this help GTM specifically vs. just being a marketing tool?"
+    ],
+    decisionDynamics: {
+      budgetAuthority: "Marketing budget, possibly sales enablement",
+      timeline: "Content strategy refresh in Q2",
+      stakeholders: ["VP Marketing", "Sales Enablement Lead", "Brand"]
+    },
+    difficulty: 2
   }
 ];
+
+// Helper to get random scenario
+export const getRandomScenario = () => {
+  const index = Math.floor(Math.random() * SCENARIO_PRODUCTS.length);
+  return SCENARIO_PRODUCTS[index];
+};
+
+// Helper to get scenario by difficulty
+export const getScenarioByDifficulty = (targetDifficulty: number) => {
+  const matching = SCENARIO_PRODUCTS.filter(s => s.difficulty === targetDifficulty);
+  if (matching.length === 0) return getRandomScenario();
+  return matching[Math.floor(Math.random() * matching.length)];
+};
 
 export const TONG_TONG_FEEDBACK_PROMPT = `You are an expert sales coach analyzing a mock discovery call for a Clay GTM Engineer interview.
 

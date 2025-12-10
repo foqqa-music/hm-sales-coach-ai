@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PhoneOff, Loader2, Target, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getApiKey } from "@/lib/storage";
-import { TONG_TONG_MOCK_DISCOVERY_PROMPT } from "@/lib/prompts";
+import { buildTongTongPrompt, SCENARIO_PRODUCTS } from "@/lib/prompts";
 import { AudioRecorder, encodeAudioForAPI, AudioPlayer } from "@/lib/audio";
 
 interface Message {
@@ -15,10 +15,11 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 type SpeakingState = "idle" | "user" | "ai";
 
 interface MockDiscoveryVoiceScreenProps {
+  scenario: typeof SCENARIO_PRODUCTS[0];
   onEndCall: (messages: Message[], duration: number) => void;
 }
 
-export function MockDiscoveryVoiceScreen({ onEndCall }: MockDiscoveryVoiceScreenProps) {
+export function MockDiscoveryVoiceScreen({ scenario, onEndCall }: MockDiscoveryVoiceScreenProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [speakingState, setSpeakingState] = useState<SpeakingState>("idle");
@@ -32,6 +33,7 @@ export function MockDiscoveryVoiceScreen({ onEndCall }: MockDiscoveryVoiceScreen
   const pendingAssistantMessageRef = useRef<boolean>(false);
 
   const apiKey = getApiKey() || "";
+  const systemPrompt = buildTongTongPrompt(scenario);
 
   // Timer
   useEffect(() => {
@@ -83,7 +85,7 @@ export function MockDiscoveryVoiceScreen({ onEndCall }: MockDiscoveryVoiceScreen
               type: "session.update",
               session: {
                 modalities: ["text", "audio"],
-                instructions: TONG_TONG_MOCK_DISCOVERY_PROMPT,
+                instructions: systemPrompt,
                 voice: "sage", // Balanced, professional voice
                 input_audio_format: "pcm16",
                 output_audio_format: "pcm16",
@@ -206,7 +208,7 @@ export function MockDiscoveryVoiceScreen({ onEndCall }: MockDiscoveryVoiceScreen
       console.error("Failed to connect:", error);
       setStatus("error");
     }
-  }, [apiKey, saveAssistantMessage]);
+  }, [apiKey, systemPrompt, saveAssistantMessage]);
 
   const disconnect = useCallback(() => {
     if (currentTranscriptRef.current.trim()) {
@@ -300,7 +302,7 @@ export function MockDiscoveryVoiceScreen({ onEndCall }: MockDiscoveryVoiceScreen
           {/* Mock Discovery Badge */}
           <div className="glass-card px-4 py-2 inline-flex items-center gap-2 border-green-500/20">
             <Target className="w-4 h-4 text-green-500" />
-            <span className="text-sm">Mock Discovery Call</span>
+            <span className="text-sm">{scenario.name}</span>
           </div>
 
           {/* Microphone Status */}

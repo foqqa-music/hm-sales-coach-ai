@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Copy, Check, RotateCcw, Settings, Quote, Target
 import { cn } from "@/lib/utils";
 import { Message } from "@/hooks/useRealtimeChat";
 import { getApiKey } from "@/lib/storage";
-import { TONG_TONG_FEEDBACK_PROMPT } from "@/lib/prompts";
+import { TONG_TONG_FEEDBACK_PROMPT, SCENARIO_PRODUCTS } from "@/lib/prompts";
 
 interface Observation {
   type: "positive" | "negative";
@@ -84,6 +84,7 @@ interface FeedbackData {
 interface MockDiscoveryFeedbackScreenProps {
   messages: Message[];
   duration: number;
+  scenario: typeof SCENARIO_PRODUCTS[0];
   onPracticeAgain: () => void;
   onChangeSettings: () => void;
 }
@@ -111,7 +112,7 @@ const CHALLENGER_LABELS = {
   prescriptiveClose: "Prescriptive Close",
 };
 
-export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgain, onChangeSettings }: MockDiscoveryFeedbackScreenProps) {
+export function MockDiscoveryFeedbackScreen({ messages, duration, scenario, onPracticeAgain, onChangeSettings }: MockDiscoveryFeedbackScreenProps) {
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -256,8 +257,8 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
             <Target className="w-4 h-4" />
             Mock Discovery Complete
           </div>
-          <h1 className="text-2xl font-semibold mb-2">Session with Tong-Tong Li</h1>
-          <p className="text-muted-foreground">Duration: {formatDuration(duration)} • {messages.length} exchanges</p>
+          <h1 className="text-2xl font-semibold mb-2">{scenario.name}</h1>
+          <p className="text-muted-foreground">{scenario.category} • {formatDuration(duration)} • {messages.length} exchanges</p>
         </div>
 
         {/* Overall Score + Key Metrics */}

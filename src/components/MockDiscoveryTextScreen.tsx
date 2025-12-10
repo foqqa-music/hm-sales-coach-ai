@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { PhoneOff, Send, Loader2, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getApiKey } from "@/lib/storage";
-import { TONG_TONG_MOCK_DISCOVERY_PROMPT } from "@/lib/prompts";
+import { buildTongTongPrompt, SCENARIO_PRODUCTS } from "@/lib/prompts";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,10 +12,11 @@ interface Message {
 }
 
 interface MockDiscoveryTextScreenProps {
+  scenario: typeof SCENARIO_PRODUCTS[0];
   onEndCall: (messages: Message[], duration: number) => void;
 }
 
-export function MockDiscoveryTextScreen({ onEndCall }: MockDiscoveryTextScreenProps) {
+export function MockDiscoveryTextScreen({ scenario, onEndCall }: MockDiscoveryTextScreenProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +27,7 @@ export function MockDiscoveryTextScreen({ onEndCall }: MockDiscoveryTextScreenPr
   const [hasStarted, setHasStarted] = useState(false);
 
   const apiKey = getApiKey() || "";
+  const systemPrompt = buildTongTongPrompt(scenario);
 
   // Timer
   useEffect(() => {
@@ -68,7 +70,7 @@ export function MockDiscoveryTextScreen({ onEndCall }: MockDiscoveryTextScreenPr
         body: JSON.stringify({
           model: "gpt-4o",
           messages: [
-            { role: "system", content: TONG_TONG_MOCK_DISCOVERY_PROMPT },
+            { role: "system", content: systemPrompt },
             ...currentMessages.map(m => ({
               role: m.role === "user" ? "user" : "assistant",
               content: m.content
@@ -132,7 +134,7 @@ export function MockDiscoveryTextScreen({ onEndCall }: MockDiscoveryTextScreenPr
           <div className="font-mono text-lg tabular-nums">{formatTime(elapsed)}</div>
           <div className="flex items-center gap-2 text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-500">
             <Target className="w-3 h-3" />
-            Mock Discovery
+            {scenario.name}
           </div>
         </div>
         <Button

@@ -1,22 +1,47 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Target, Mic, Keyboard, ArrowLeft, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { Target, Mic, Keyboard, ArrowLeft, CheckCircle, AlertTriangle, Info, Shuffle, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { INPUT_MODES, InputMode } from "@/lib/constants";
 import { getDefaultInputMode, setDefaultInputMode } from "@/lib/storage";
+import { SCENARIO_PRODUCTS, getRandomScenario } from "@/lib/prompts";
+
+export interface MockDiscoveryConfig {
+  inputMode: InputMode;
+  scenario: typeof SCENARIO_PRODUCTS[0];
+}
 
 interface MockDiscoverySetupProps {
-  onStartCall: (inputMode: InputMode) => void;
+  onStartCall: (config: MockDiscoveryConfig) => void;
   onBack?: () => void;
 }
 
+const DIFFICULTY_LABELS: Record<number, { label: string; color: string; bg: string }> = {
+  2: { label: "Standard", color: "text-green-500", bg: "bg-green-500/10" },
+  3: { label: "Challenging", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  4: { label: "Advanced", color: "text-orange-500", bg: "bg-orange-500/10" },
+};
+
 export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupProps) {
   const [inputMode, setInputMode] = useState<InputMode>(getDefaultInputMode());
+  const [selectedScenario, setSelectedScenario] = useState<typeof SCENARIO_PRODUCTS[0]>(() => getRandomScenario());
+  const [showScenarioSelector, setShowScenarioSelector] = useState(false);
 
   const handleStart = () => {
     setDefaultInputMode(inputMode);
-    onStartCall(inputMode);
+    onStartCall({ inputMode, scenario: selectedScenario });
   };
+
+  const handleRandomScenario = () => {
+    let newScenario = getRandomScenario();
+    // Ensure we get a different scenario
+    while (newScenario.id === selectedScenario.id && SCENARIO_PRODUCTS.length > 1) {
+      newScenario = getRandomScenario();
+    }
+    setSelectedScenario(newScenario);
+  };
+
+  const difficultyInfo = DIFFICULTY_LABELS[selectedScenario.difficulty] || DIFFICULTY_LABELS[2];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -38,36 +63,95 @@ export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupPr
       {/* Content */}
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-          {/* Scenario Brief */}
+          {/* Scenario Selection */}
           <div className="glass-card p-6 border-green-500/20">
-            <div className="flex items-center gap-2 mb-4">
-              <Info className="w-5 h-5 text-green-500" />
-              <h2 className="text-lg font-semibold">Your Scenario</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Info className="w-5 h-5 text-green-500" />
+                <h2 className="text-lg font-semibold">Your Scenario</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRandomScenario}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Shuffle className="w-4 h-4" />
+                Randomize
+              </Button>
             </div>
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-4">
+
+            {/* Selected Scenario Card */}
+            <div className="bg-secondary/30 rounded-lg p-4 mb-4">
+              <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-muted-foreground">Company</p>
-                  <p className="font-medium">Clay</p>
+                  <h3 className="font-semibold text-lg">{selectedScenario.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedScenario.category}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Your Contact</p>
-                  <p className="font-medium">Tong-Tong Li, GTM Engineering Manager</p>
-                </div>
+                <span className={cn("text-xs font-medium px-2 py-1 rounded", difficultyInfo.color, difficultyInfo.bg)}>
+                  {difficultyInfo.label}
+                </span>
               </div>
-              <div>
-                <p className="text-muted-foreground">Your Product: DataClean Pro</p>
-                <ul className="mt-1 space-y-1 text-foreground">
-                  <li>• Verifies email/phone accuracy before you pay for enrichment</li>
-                  <li>• Catches data decay in real-time (updates when contacts change jobs)</li>
-                  <li>• Flags duplicates and standardizes formatting</li>
-                </ul>
+              <p className="text-sm text-muted-foreground mb-3">{selectedScenario.description}</p>
+              <div className="space-y-1">
+                {selectedScenario.bullets.map((bullet, i) => (
+                  <p key={i} className="text-sm">• {bullet}</p>
+                ))}
               </div>
-              <div className="pt-2 border-t border-border/50">
-                <p className="text-green-400 font-medium">Objective: Qualify this opportunity through discovery</p>
-                <p className="text-muted-foreground">Duration: 30-45 minutes</p>
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-green-400">Selling to:</span> Tong-Tong Li, GTM Engineering Manager at Clay
+                </p>
               </div>
             </div>
+
+            {/* Scenario Selector Toggle */}
+            <button
+              onClick={() => setShowScenarioSelector(!showScenarioSelector)}
+              className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/20 hover:bg-secondary/40 transition-colors"
+            >
+              <span className="text-sm font-medium">Choose specific scenario ({SCENARIO_PRODUCTS.length} available)</span>
+              {showScenarioSelector ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Scenario List */}
+            {showScenarioSelector && (
+              <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                {SCENARIO_PRODUCTS.map((scenario) => {
+                  const isSelected = scenario.id === selectedScenario.id;
+                  const scenarioDifficulty = DIFFICULTY_LABELS[scenario.difficulty] || DIFFICULTY_LABELS[2];
+                  return (
+                    <button
+                      key={scenario.id}
+                      onClick={() => {
+                        setSelectedScenario(scenario);
+                        setShowScenarioSelector(false);
+                      }}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg transition-colors",
+                        isSelected
+                          ? "bg-green-500/20 ring-1 ring-green-500"
+                          : "bg-secondary/20 hover:bg-secondary/40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{scenario.name}</p>
+                          <p className="text-xs text-muted-foreground">{scenario.category}</p>
+                        </div>
+                        <span className={cn("text-xs px-2 py-0.5 rounded", scenarioDifficulty.color, scenarioDifficulty.bg)}>
+                          {scenarioDifficulty.label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Interviewer Card */}

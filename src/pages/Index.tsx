@@ -9,7 +9,7 @@ import { HiringManagerSetup } from "@/components/HiringManagerSetup";
 import { TextInterviewScreen } from "@/components/TextInterviewScreen";
 import { VoiceInterviewScreen } from "@/components/VoiceInterviewScreen";
 import { InterviewFeedbackScreen } from "@/components/InterviewFeedbackScreen";
-import { MockDiscoverySetup } from "@/components/MockDiscoverySetup";
+import { MockDiscoverySetup, MockDiscoveryConfig } from "@/components/MockDiscoverySetup";
 import { MockDiscoveryTextScreen } from "@/components/MockDiscoveryTextScreen";
 import { MockDiscoveryVoiceScreen } from "@/components/MockDiscoveryVoiceScreen";
 import { MockDiscoveryFeedbackScreen } from "@/components/MockDiscoveryFeedbackScreen";
@@ -46,10 +46,6 @@ interface SalesConfig {
 interface InterviewSessionConfig {
   config: InterviewConfig;
   style: InterviewStyle;
-  inputMode: InputMode;
-}
-
-interface MockDiscoveryConfig {
   inputMode: InputMode;
 }
 
@@ -149,8 +145,8 @@ const Index = () => {
   };
 
   // Mock Discovery handlers
-  const handleStartMockDiscovery = (inputMode: InputMode) => {
-    setMockDiscoveryConfig({ inputMode });
+  const handleStartMockDiscovery = (config: MockDiscoveryConfig) => {
+    setMockDiscoveryConfig(config);
     setScreen("mock-discovery-call");
   };
 
@@ -168,7 +164,7 @@ const Index = () => {
 
   const handleMockDiscoveryChangeSettings = () => {
     setMockDiscoveryResult(null);
-    setScreen("mode-select");
+    setScreen("mock-discovery-setup");
   };
 
   // Back handlers
@@ -269,19 +265,22 @@ const Index = () => {
       {screen === "mock-discovery-call" && mockDiscoveryConfig && (
         mockDiscoveryConfig.inputMode === "voice" ? (
           <MockDiscoveryVoiceScreen
+            scenario={mockDiscoveryConfig.scenario}
             onEndCall={handleEndMockDiscovery}
           />
         ) : (
           <MockDiscoveryTextScreen
+            scenario={mockDiscoveryConfig.scenario}
             onEndCall={handleEndMockDiscovery}
           />
         )
       )}
 
-      {screen === "mock-discovery-feedback" && mockDiscoveryResult && (
+      {screen === "mock-discovery-feedback" && mockDiscoveryResult && mockDiscoveryConfig && (
         <MockDiscoveryFeedbackScreen
           messages={mockDiscoveryResult.messages}
           duration={mockDiscoveryResult.duration}
+          scenario={mockDiscoveryConfig.scenario}
           onPracticeAgain={handleMockDiscoveryPracticeAgain}
           onChangeSettings={handleMockDiscoveryChangeSettings}
         />
