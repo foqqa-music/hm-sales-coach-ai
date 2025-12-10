@@ -4,7 +4,7 @@ import { Target, Mic, Keyboard, ArrowLeft, CheckCircle, AlertTriangle, Info, Shu
 import { cn } from "@/lib/utils";
 import { INPUT_MODES, InputMode } from "@/lib/constants";
 import { getDefaultInputMode, setDefaultInputMode } from "@/lib/storage";
-import { SCENARIO_PRODUCTS, getRandomScenario } from "@/lib/prompts";
+import { SCENARIO_PRODUCTS, getRandomScenario, getScenarioByDifficulty } from "@/lib/prompts";
 
 export interface MockDiscoveryConfig {
   inputMode: InputMode;
@@ -16,15 +16,18 @@ interface MockDiscoverySetupProps {
   onBack?: () => void;
 }
 
-const DIFFICULTY_LABELS: Record<number, { label: string; color: string; bg: string }> = {
-  2: { label: "Standard", color: "text-green-500", bg: "bg-green-500/10" },
-  3: { label: "Challenging", color: "text-yellow-500", bg: "bg-yellow-500/10" },
-  4: { label: "Advanced", color: "text-orange-500", bg: "bg-orange-500/10" },
+const DIFFICULTY_LABELS: Record<number, { label: string; color: string; bg: string; description: string }> = {
+  2: { label: "Standard", color: "text-green-500", bg: "bg-green-500/10", description: "Cooperative prospect, willing to share" },
+  3: { label: "Challenging", color: "text-yellow-500", bg: "bg-yellow-500/10", description: "Neutral, won't volunteer info" },
+  4: { label: "Advanced", color: "text-orange-500", bg: "bg-orange-500/10", description: "Skeptical, make them work for it" },
 };
+
+const DIFFICULTY_OPTIONS = [2, 3, 4] as const;
 
 export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupProps) {
   const [inputMode, setInputMode] = useState<InputMode>(getDefaultInputMode());
-  const [selectedScenario, setSelectedScenario] = useState<typeof SCENARIO_PRODUCTS[0]>(() => getRandomScenario());
+  const [selectedDifficulty, setSelectedDifficulty] = useState<number>(2);
+  const [selectedScenario, setSelectedScenario] = useState<typeof SCENARIO_PRODUCTS[0]>(() => getScenarioByDifficulty(2));
   const [showScenarioSelector, setShowScenarioSelector] = useState(false);
 
   const handleStart = () => {
@@ -32,13 +35,31 @@ export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupPr
     onStartCall({ inputMode, scenario: selectedScenario });
   };
 
-  const handleRandomScenario = () => {
-    let newScenario = getRandomScenario();
-    // Ensure we get a different scenario
-    while (newScenario.id === selectedScenario.id && SCENARIO_PRODUCTS.length > 1) {
-      newScenario = getRandomScenario();
-    }
+  const handleDifficultyChange = (difficulty: number) => {
+    setSelectedDifficulty(difficulty);
+    // Auto-select a scenario at this difficulty
+    const newScenario = getScenarioByDifficulty(difficulty);
     setSelectedScenario(newScenario);
+  };
+
+  const handleRandomScenario = () => {
+    const scenariosAtDifficulty = SCENARIO_PRODUCTS.filter(s => s.difficulty === selectedDifficulty);
+    if (scenariosAtDifficulty.length <= 1) {
+      // If only one scenario at this difficulty, get any random one
+      let newScenario = getRandomScenario();
+      while (newScenario.id === selectedScenario.id && SCENARIO_PRODUCTS.length > 1) {
+        newScenario = getRandomScenario();
+      }
+      setSelectedScenario(newScenario);
+      setSelectedDifficulty(newScenario.difficulty);
+    } else {
+      // Get a different scenario at the same difficulty
+      let newScenario = getScenarioByDifficulty(selectedDifficulty);
+      while (newScenario.id === selectedScenario.id) {
+        newScenario = getScenarioByDifficulty(selectedDifficulty);
+      }
+      setSelectedScenario(newScenario);
+    }
   };
 
   const difficultyInfo = DIFFICULTY_LABELS[selectedScenario.difficulty] || DIFFICULTY_LABELS[2];
@@ -63,6 +84,34 @@ export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupPr
       {/* Content */}
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+          {/* Difficulty Selection */}
+          <div className="glass-card p-6">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
+              Difficulty Level
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {DIFFICULTY_OPTIONS.map((difficulty) => {
+                const info = DIFFICULTY_LABELS[difficulty];
+                const isSelected = selectedDifficulty === difficulty;
+                return (
+                  <button
+                    key={difficulty}
+                    onClick={() => handleDifficultyChange(difficulty)}
+                    className={cn(
+                      "p-4 rounded-lg text-left transition-all duration-200",
+                      isSelected
+                        ? `ring-2 ring-offset-2 ring-offset-background ${info.bg} ${info.color.replace('text-', 'ring-')}`
+                        : "bg-secondary/30 hover:bg-secondary/50"
+                    )}
+                  >
+                    <p className={cn("font-medium mb-1", isSelected && info.color)}>{info.label}</p>
+                    <p className="text-xs text-muted-foreground">{info.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Scenario Selection */}
           <div className="glass-card p-6 border-green-500/20">
             <div className="flex items-center justify-between mb-4">
@@ -129,6 +178,7 @@ export function MockDiscoverySetup({ onStartCall, onBack }: MockDiscoverySetupPr
                       key={scenario.id}
                       onClick={() => {
                         setSelectedScenario(scenario);
+                        setSelectedDifficulty(scenario.difficulty);
                         setShowScenarioSelector(false);
                       }}
                       className={cn(

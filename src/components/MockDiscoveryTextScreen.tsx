@@ -78,7 +78,7 @@ export function MockDiscoveryTextScreen({ scenario, onEndCall }: MockDiscoveryTe
             // Opening instruction if no messages yet
             ...(currentMessages.length === 0 ? [{
               role: "user" as const,
-              content: "[Start the mock discovery. Greet them warmly as Tong-Tong, acknowledge this is a mock discovery, and let them know they can treat you like a real prospect. Keep it natural and brief - you're playing a VP Sales they need to discover.]"
+              content: `[Start the session by giving them the scenario brief, then wait for them to begin. Say something like: "Alright, here's your scenario: You're selling ${scenario.name} — ${scenario.description.toLowerCase()}. I'm Tong-Tong Li, GTM Engineering Manager at Clay. You've got 30 minutes to run discovery on me. Ready when you are." Then STOP and wait for them to start the call.]`
             }] : [])
           ],
           max_tokens: 500,

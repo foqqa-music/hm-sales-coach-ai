@@ -116,7 +116,7 @@ export function MockDiscoveryVoiceScreen({ scenario, onEndCall }: MockDiscoveryV
             });
             await recorderRef.current.start();
 
-            // Tong-Tong opens the mock discovery
+            // Tong-Tong opens the call with scenario brief
             ws.send(
               JSON.stringify({
                 type: "conversation.item.create",
@@ -126,7 +126,7 @@ export function MockDiscoveryVoiceScreen({ scenario, onEndCall }: MockDiscoveryV
                   content: [
                     {
                       type: "input_text",
-                      text: "[Start the mock discovery. Greet them warmly as Tong-Tong, acknowledge this is a mock discovery, and let them know they can treat you like a real prospect. Keep it natural and brief.]",
+                      text: `[Start the session by giving them the scenario brief, then wait for them to begin. Say something like: "Alright, here's your scenario: You're selling ${scenario.name} — ${scenario.description.toLowerCase()}. I'm Tong-Tong Li, GTM Engineering Manager at Clay. You've got 30 minutes to run discovery on me. Ready when you are." Then STOP and wait for them to start the call.]`,
                     },
                   ],
                 },
