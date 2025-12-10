@@ -57,6 +57,12 @@ export const PRACTICE_MODES = {
     description: "Practice job interviews with a customizable hiring manager",
     icon: "briefcase",
   },
+  mockDiscovery: {
+    id: "mockDiscovery",
+    title: "Mock Discovery: Tong Tong @ Clay",
+    description: "Practice your mock discovery call with Tong Tong Li for the GTM Engineer role",
+    icon: "target",
+  },
 } as const;
 
 export const INTERVIEW_STYLES = [

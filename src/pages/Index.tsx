@@ -9,6 +9,10 @@ import { HiringManagerSetup } from "@/components/HiringManagerSetup";
 import { TextInterviewScreen } from "@/components/TextInterviewScreen";
 import { VoiceInterviewScreen } from "@/components/VoiceInterviewScreen";
 import { InterviewFeedbackScreen } from "@/components/InterviewFeedbackScreen";
+import { MockDiscoverySetup } from "@/components/MockDiscoverySetup";
+import { MockDiscoveryTextScreen } from "@/components/MockDiscoveryTextScreen";
+import { MockDiscoveryVoiceScreen } from "@/components/MockDiscoveryVoiceScreen";
+import { MockDiscoveryFeedbackScreen } from "@/components/MockDiscoveryFeedbackScreen";
 import { getApiKey } from "@/lib/storage";
 import { 
   CallType, 
@@ -28,7 +32,10 @@ type Screen =
   | "sales-feedback"
   | "interview-setup"
   | "interview-call"
-  | "interview-feedback";
+  | "interview-feedback"
+  | "mock-discovery-setup"
+  | "mock-discovery-call"
+  | "mock-discovery-feedback";
 
 interface SalesConfig {
   callType: CallType;
@@ -39,6 +46,10 @@ interface SalesConfig {
 interface InterviewSessionConfig {
   config: InterviewConfig;
   style: InterviewStyle;
+  inputMode: InputMode;
+}
+
+interface MockDiscoveryConfig {
   inputMode: InputMode;
 }
 
@@ -59,6 +70,10 @@ const Index = () => {
   const [interviewConfig, setInterviewConfig] = useState<InterviewSessionConfig | null>(null);
   const [interviewResult, setInterviewResult] = useState<SessionResult | null>(null);
 
+  // Mock Discovery state
+  const [mockDiscoveryConfig, setMockDiscoveryConfig] = useState<MockDiscoveryConfig | null>(null);
+  const [mockDiscoveryResult, setMockDiscoveryResult] = useState<SessionResult | null>(null);
+
   useEffect(() => {
     if (!getApiKey()) {
       setScreen("api-key");
@@ -75,8 +90,10 @@ const Index = () => {
     setPracticeMode(mode);
     if (mode === "sales") {
       setScreen("sales-setup");
-    } else {
+    } else if (mode === "interview") {
       setScreen("interview-setup");
+    } else if (mode === "mockDiscovery") {
+      setScreen("mock-discovery-setup");
     }
   };
 
@@ -129,6 +146,29 @@ const Index = () => {
   const handleInterviewChangeSettings = () => {
     setInterviewResult(null);
     setScreen("interview-setup");
+  };
+
+  // Mock Discovery handlers
+  const handleStartMockDiscovery = (inputMode: InputMode) => {
+    setMockDiscoveryConfig({ inputMode });
+    setScreen("mock-discovery-call");
+  };
+
+  const handleEndMockDiscovery = (messages: Message[], duration: number) => {
+    setMockDiscoveryResult({ messages, duration });
+    setScreen("mock-discovery-feedback");
+  };
+
+  const handleMockDiscoveryPracticeAgain = () => {
+    if (mockDiscoveryConfig) {
+      setMockDiscoveryResult(null);
+      setScreen("mock-discovery-call");
+    }
+  };
+
+  const handleMockDiscoveryChangeSettings = () => {
+    setMockDiscoveryResult(null);
+    setScreen("mode-select");
   };
 
   // Back handlers
@@ -215,6 +255,35 @@ const Index = () => {
           config={interviewConfig.config}
           onPracticeAgain={handleInterviewPracticeAgain}
           onChangeSettings={handleInterviewChangeSettings}
+        />
+      )}
+
+      {/* Mock Discovery Flow */}
+      {screen === "mock-discovery-setup" && (
+        <MockDiscoverySetup
+          onStartCall={handleStartMockDiscovery}
+          onBack={handleBackToModeSelect}
+        />
+      )}
+
+      {screen === "mock-discovery-call" && mockDiscoveryConfig && (
+        mockDiscoveryConfig.inputMode === "voice" ? (
+          <MockDiscoveryVoiceScreen
+            onEndCall={handleEndMockDiscovery}
+          />
+        ) : (
+          <MockDiscoveryTextScreen
+            onEndCall={handleEndMockDiscovery}
+          />
+        )
+      )}
+
+      {screen === "mock-discovery-feedback" && mockDiscoveryResult && (
+        <MockDiscoveryFeedbackScreen
+          messages={mockDiscoveryResult.messages}
+          duration={mockDiscoveryResult.duration}
+          onPracticeAgain={handleMockDiscoveryPracticeAgain}
+          onChangeSettings={handleMockDiscoveryChangeSettings}
         />
       )}
     </div>
