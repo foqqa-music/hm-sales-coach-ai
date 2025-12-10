@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronDown, ChevronUp, Copy, Check, RotateCcw, Settings, Quote, Target, AlertTriangle, CheckCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Check, RotateCcw, Settings, Quote, Target, AlertTriangle, CheckCircle, MessageSquare, Clock, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "@/hooks/useRealtimeChat";
 import { getApiKey } from "@/lib/storage";
@@ -19,36 +19,66 @@ interface CategoryFeedback {
   summary: string;
 }
 
-interface ClaySpecificFeedback {
-  redFlagsHit: string[];
-  greenFlagsHit: string[];
-  reverseApproachReady: string;
+interface MeddicItem {
+  found: boolean;
+  details: string;
+}
+
+interface ChallengerItem {
+  done: boolean;
+  example: string;
 }
 
 interface SampleBetterQuestion {
   theirQuestion: string;
   betterVersion: string;
+  why?: string;
 }
 
 interface FeedbackData {
   scores: {
-    hypothesisDriven: number;
-    systemsThinking: number;
-    painMetrics: number;
-    conversationControl: number;
+    discoveryQuestions: number;
+    activeListening: number;
+    businessImpact: number;
+    challengerMeddic: number;
+  };
+  talkTimeEstimate: {
+    candidatePercent: number;
+    buyerPercent: number;
+    assessment: string;
+  };
+  questionCount: {
+    total: number;
+    assessment: string;
   };
   categoryFeedback: {
-    hypothesisDriven: CategoryFeedback;
-    systemsThinking: CategoryFeedback;
-    painMetrics: CategoryFeedback;
-    conversationControl: CategoryFeedback;
+    discoveryQuestions: CategoryFeedback;
+    activeListening: CategoryFeedback;
+    businessImpact: CategoryFeedback;
+    challengerMeddic: CategoryFeedback;
   };
-  claySpecificFeedback: ClaySpecificFeedback;
+  meddic: {
+    metric: MeddicItem;
+    economicBuyer: MeddicItem;
+    decisionCriteria: MeddicItem;
+    decisionProcess: MeddicItem;
+    identifyPain: MeddicItem;
+    champion: MeddicItem;
+  };
+  challenger: {
+    ledWithInsight: ChallengerItem;
+    challengedAssumptions: ChallengerItem;
+    reframedProblem: ChallengerItem;
+    prescriptiveClose: ChallengerItem;
+  };
+  redFlagsHit: string[];
+  greenFlagsHit: string[];
   keyMoments: Array<{ type: "positive" | "negative"; timestamp: string; text: string }>;
   overallAssessment: string;
   topPriorities: string[];
   whatWorkedWell: string[];
   sampleBetterQuestions: SampleBetterQuestion[];
+  nextSessionRecommendation?: string;
 }
 
 interface MockDiscoveryFeedbackScreenProps {
@@ -59,18 +89,34 @@ interface MockDiscoveryFeedbackScreenProps {
 }
 
 const SCORE_CATEGORIES = [
-  { key: "hypothesisDriven", label: "Hypothesis-Driven Discovery", description: "Coming with a perspective vs generic questions" },
-  { key: "systemsThinking", label: "Systems Thinking", description: "Connecting data → enrichment → activation → measurement" },
-  { key: "painMetrics", label: "Pain & Metrics Uncovered", description: "Quantifying business impact and digging deeper" },
-  { key: "conversationControl", label: "Conversation Control & Commercial Awareness", description: "Driving discovery, connecting to revenue" },
+  { key: "discoveryQuestions", label: "Opening & Discovery Questions", description: "Agenda setting, open-ended questions, layered follow-ups" },
+  { key: "activeListening", label: "Active Listening & Talk Ratio", description: "Responding to answers, adapting, using their language" },
+  { key: "businessImpact", label: "Business Impact Quantification", description: "Connecting to dollars, time, opportunity cost" },
+  { key: "challengerMeddic", label: "Challenger Methodology & MEDDIC", description: "Insights, challenging assumptions, qualification" },
 ] as const;
+
+const MEDDIC_LABELS = {
+  metric: "Metric",
+  economicBuyer: "Economic Buyer",
+  decisionCriteria: "Decision Criteria",
+  decisionProcess: "Decision Process",
+  identifyPain: "Identify Pain",
+  champion: "Champion",
+};
+
+const CHALLENGER_LABELS = {
+  ledWithInsight: "Led with Insight",
+  challengedAssumptions: "Challenged Assumptions",
+  reframedProblem: "Reframed Problem",
+  prescriptiveClose: "Prescriptive Close",
+};
 
 export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgain, onChangeSettings }: MockDiscoveryFeedbackScreenProps) {
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTranscript, setShowTranscript] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["hypothesisDriven", "systemsThinking", "painMetrics", "conversationControl"]));
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["discoveryQuestions", "activeListening", "businessImpact", "challengerMeddic"]));
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -149,22 +195,22 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
   };
 
   const totalScore = feedback
-    ? feedback.scores.hypothesisDriven +
-      feedback.scores.systemsThinking +
-      feedback.scores.painMetrics +
-      feedback.scores.conversationControl
+    ? feedback.scores.discoveryQuestions +
+      feedback.scores.activeListening +
+      feedback.scores.businessImpact +
+      feedback.scores.challengerMeddic
     : 0;
 
   const getScoreColor = (score: number, max: number = 100) => {
     const percentage = (score / max) * 100;
-    if (percentage < 50) return "text-destructive";
+    if (percentage < 50) return "text-red-500";
     if (percentage < 70) return "text-yellow-500";
     return "text-green-500";
   };
 
   const getScoreBorderColor = (score: number, max: number = 100) => {
     const percentage = (score / max) * 100;
-    if (percentage < 50) return "border-destructive";
+    if (percentage < 50) return "border-red-500";
     if (percentage < 70) return "border-yellow-500";
     return "border-green-500";
   };
@@ -184,7 +230,7 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
         <div className="text-center animate-fade-in">
           <div className="w-12 h-12 rounded-full border-2 border-green-500 border-t-transparent animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Analyzing your discovery call...</p>
-          <p className="text-sm text-muted-foreground mt-2">Getting Clay-specific feedback</p>
+          <p className="text-sm text-muted-foreground mt-2">Evaluating against top performer benchmarks</p>
         </div>
       </div>
     );
@@ -194,7 +240,7 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center glass-card p-8 max-w-md">
-          <p className="text-destructive mb-4">{error}</p>
+          <p className="text-red-500 mb-4">{error}</p>
           <Button onClick={onPracticeAgain}>Try Again</Button>
         </div>
       </div>
@@ -214,80 +260,157 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
           <p className="text-muted-foreground">Duration: {formatDuration(duration)} • {messages.length} exchanges</p>
         </div>
 
-        {/* Overall Score */}
-        <div className="glass-card p-8 text-center border-green-500/20">
-          <div
-            className={cn(
-              "w-28 h-28 rounded-full border-4 flex items-center justify-center mx-auto mb-4",
-              getScoreBorderColor(totalScore)
-            )}
-          >
-            <span className={cn("text-4xl font-bold", getScoreColor(totalScore))}>
-              {totalScore}
-            </span>
+        {/* Overall Score + Key Metrics */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Overall Score */}
+          <div className="glass-card p-6 text-center border-green-500/20 col-span-1">
+            <div
+              className={cn(
+                "w-20 h-20 rounded-full border-4 flex items-center justify-center mx-auto mb-2",
+                getScoreBorderColor(totalScore)
+              )}
+            >
+              <span className={cn("text-3xl font-bold", getScoreColor(totalScore))}>
+                {totalScore}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm">out of 100</p>
           </div>
-          <p className="text-muted-foreground mb-4">out of 100</p>
-          
-          {/* Overall Assessment */}
-          {feedback?.overallAssessment && (
-            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-              {feedback.overallAssessment}
-            </p>
-          )}
+
+          {/* Talk Time */}
+          <div className="glass-card p-4 col-span-1">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">Talk Ratio</p>
+            </div>
+            {feedback?.talkTimeEstimate ? (
+              <>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>You: {feedback.talkTimeEstimate.candidatePercent}%</span>
+                  <span>Buyer: {feedback.talkTimeEstimate.buyerPercent}%</span>
+                </div>
+                <p className={cn(
+                  "text-xs",
+                  feedback.talkTimeEstimate.assessment === "good balance" ? "text-green-500" : "text-yellow-500"
+                )}>
+                  {feedback.talkTimeEstimate.assessment}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Target: 43-46% you</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not available</p>
+            )}
+          </div>
+
+          {/* Question Count */}
+          <div className="glass-card p-4 col-span-1">
+            <div className="flex items-center gap-2 mb-2">
+              <HelpCircle className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">Questions Asked</p>
+            </div>
+            {feedback?.questionCount ? (
+              <>
+                <p className="text-2xl font-bold">{feedback.questionCount.total}</p>
+                <p className={cn(
+                  "text-xs",
+                  feedback.questionCount.assessment.includes("optimal") ? "text-green-500" : "text-yellow-500"
+                )}>
+                  {feedback.questionCount.assessment}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Target: 11-14</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not available</p>
+            )}
+          </div>
         </div>
 
-        {/* Clay-Specific Feedback */}
-        {feedback?.claySpecificFeedback && (
-          <div className="space-y-4">
-            {/* Green Flags */}
-            {feedback.claySpecificFeedback.greenFlagsHit?.length > 0 && (
-              <div className="glass-card p-4 border-l-4 border-green-500/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <h3 className="font-medium text-green-500">Clay Green Flags Hit</h3>
-                </div>
-                <div className="space-y-2">
-                  {feedback.claySpecificFeedback.greenFlagsHit.map((flag, i) => (
-                    <p key={i} className="text-sm">✓ {flag}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Red Flags */}
-            {feedback.claySpecificFeedback.redFlagsHit?.length > 0 && (
-              <div className="glass-card p-4 border-l-4 border-red-500/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                  <h3 className="font-medium text-red-500">Red Flags Triggered</h3>
-                </div>
-                <div className="space-y-2">
-                  {feedback.claySpecificFeedback.redFlagsHit.map((flag, i) => (
-                    <p key={i} className="text-sm text-red-400">✗ {flag}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Reverse Demo Ready */}
-            {feedback.claySpecificFeedback.reverseApproachReady && (
-              <div className="glass-card p-4">
-                <h3 className="font-medium mb-2">Reverse Demo Readiness</h3>
-                <p className="text-sm text-muted-foreground">{feedback.claySpecificFeedback.reverseApproachReady}</p>
-              </div>
-            )}
+        {/* Overall Assessment */}
+        {feedback?.overallAssessment && (
+          <div className="glass-card p-4">
+            <p className="text-sm">{feedback.overallAssessment}</p>
           </div>
         )}
 
-        {/* What Worked Well */}
-        {feedback?.whatWorkedWell && feedback.whatWorkedWell.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-sm font-medium text-green-500 uppercase tracking-wide">
-              ✓ What Would Impress Tong-Tong
-            </h2>
-            <div className="glass-card p-4 space-y-2 border-l-4 border-green-500/50">
-              {feedback.whatWorkedWell.map((item, i) => (
-                <p key={i} className="text-sm">{item}</p>
+        {/* MEDDIC Checklist */}
+        {feedback?.meddic && (
+          <div className="glass-card p-4">
+            <h3 className="text-sm font-medium mb-3">MEDDIC Qualification</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(feedback.meddic).map(([key, value]) => (
+                <div key={key} className="flex items-start gap-2">
+                  <div className={cn(
+                    "w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5",
+                    value.found ? "bg-green-500/20" : "bg-red-500/20"
+                  )}>
+                    {value.found ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <span className="text-red-500 text-xs">✗</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{MEDDIC_LABELS[key as keyof typeof MEDDIC_LABELS]}</p>
+                    <p className="text-xs text-muted-foreground">{value.details}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Challenger Checklist */}
+        {feedback?.challenger && (
+          <div className="glass-card p-4">
+            <h3 className="text-sm font-medium mb-3">Challenger Methodology</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(feedback.challenger).map(([key, value]) => (
+                <div key={key} className="flex items-start gap-2">
+                  <div className={cn(
+                    "w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5",
+                    value.done ? "bg-green-500/20" : "bg-yellow-500/20"
+                  )}>
+                    {value.done ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <span className="text-yellow-500 text-xs">—</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{CHALLENGER_LABELS[key as keyof typeof CHALLENGER_LABELS]}</p>
+                    <p className="text-xs text-muted-foreground">{value.example}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Green Flags */}
+        {feedback?.greenFlagsHit && feedback.greenFlagsHit.length > 0 && (
+          <div className="glass-card p-4 border-l-4 border-green-500/50">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <h3 className="font-medium text-green-500">What Worked Well</h3>
+            </div>
+            <div className="space-y-2">
+              {feedback.greenFlagsHit.map((flag, i) => (
+                <p key={i} className="text-sm">✓ {flag}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Red Flags */}
+        {feedback?.redFlagsHit && feedback.redFlagsHit.length > 0 && (
+          <div className="glass-card p-4 border-l-4 border-red-500/50">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <h3 className="font-medium text-red-500">Areas to Improve</h3>
+            </div>
+            <div className="space-y-2">
+              {feedback.redFlagsHit.map((flag, i) => (
+                <p key={i} className="text-sm text-red-400">✗ {flag}</p>
               ))}
             </div>
           </div>
@@ -316,19 +439,22 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
         {feedback?.sampleBetterQuestions && feedback.sampleBetterQuestions.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              💡 Better Question Framing
+              💡 Question Improvements
             </h2>
             <div className="glass-card p-4 space-y-4">
               {feedback.sampleBetterQuestions.map((sq, i) => (
-                <div key={i} className="space-y-2">
+                <div key={i} className="space-y-2 pb-3 border-b border-border/50 last:border-0 last:pb-0">
                   <div className="text-sm">
-                    <span className="text-red-400">Your question:</span>
-                    <p className="text-muted-foreground italic ml-4">"{sq.theirQuestion}"</p>
+                    <span className="text-red-400 text-xs uppercase">Your question:</span>
+                    <p className="text-muted-foreground italic">"{sq.theirQuestion}"</p>
                   </div>
                   <div className="text-sm">
-                    <span className="text-green-400">Hypothesis-driven version:</span>
-                    <p className="ml-4">"{sq.betterVersion}"</p>
+                    <span className="text-green-400 text-xs uppercase">Better version:</span>
+                    <p>"{sq.betterVersion}"</p>
                   </div>
+                  {sq.why && (
+                    <p className="text-xs text-muted-foreground">{sq.why}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -502,6 +628,15 @@ export function MockDiscoveryFeedbackScreen({ messages, duration, onPracticeAgai
             </div>
           )}
         </div>
+
+        {/* Next Session Recommendation */}
+        {feedback?.nextSessionRecommendation && (
+          <div className="glass-card p-4 bg-blue-500/5 border-blue-500/20">
+            <p className="text-sm">
+              <span className="text-blue-400 font-medium">Next session:</span> {feedback.nextSessionRecommendation}
+            </p>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
