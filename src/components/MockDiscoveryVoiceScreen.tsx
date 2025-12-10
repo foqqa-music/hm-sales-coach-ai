@@ -126,7 +126,7 @@ export function MockDiscoveryVoiceScreen({ scenario, onEndCall }: MockDiscoveryV
                   content: [
                     {
                       type: "input_text",
-                      text: `[Give the scenario brief: "Alright, here's your scenario: You're selling ${scenario.name} — ${scenario.description.toLowerCase()}. I'm Tong-Tong Li, GTM Engineering Manager at Clay. You've got 30 minutes to run discovery on me. Ready when you are." Then STOP. Do not say anything else. Do not ask how they want to start. Do not say "what can I help you with". Just wait in silence for them to begin.]`,
+                      text: `[You MUST start by giving the scenario brief. Say exactly this: "Alright, here's your scenario: You're selling ${scenario.name} — ${scenario.description.toLowerCase()}. I'm Tong-Tong Li, GTM Engineering Manager at Clay. You've got 30 minutes to run discovery on me. Ready when you are." Do NOT skip this. Do NOT just say "Alright." — give the full scenario brief first.]`,
                     },
                   ],
                 },
